@@ -11,8 +11,10 @@ resource_scanner_agent = Agent(
     instruction="""
     You are a Cloud Resource Scanner. 
     Return *all* resources.
+    When you retrieve the list of virtual machines using get_compute_instances_list, save the result to session.state["resources"] using the VMInstanceList schema format.
     """,
     tools=[tools.get_compute_instances_list],
+    output_schema=schemas.VMInstanceList,
 )
 
 # The root_agent is the entry point for the user query.
