@@ -1,5 +1,8 @@
 from google.adk import Agent
 from google.adk.agents import SequentialAgent
+from google.adk.tools.mcp_tool import McpToolset
+from google.adk.tools.mcp_tool import StreamableHTTPConnectionParams
+
 
 import janitor.schemas as schemas
 import janitor.settings as settings
@@ -18,6 +21,23 @@ resource_scanner_agent = Agent(
     output_key="resources",
 )
 
+resource_labeler_agent = Agent(
+    name="resource_labeler_agent",
+    model=settings.GEMINI_MODEL,
+    instruction="""
+    You are a Cloud Resource Labeler. 
+    Please lavel as 'janitor-scheduled' with the value set to 7 days in the future to the idle instances. Do not add the label 'janitor-scheduled' if already added to the instance
+    """,
+    tools=[
+        tools.get_current_date,
+        tools.add_days_to_date,
+         McpToolset(
+            connection_params=StreamableHTTPConnectionParams(url="http://127.0.0.1:8080")
+        )
+    ],
+    output_schema=schemas.VMInstanceList,
+    output_key="resources",
+)
 
 resource_monitor_agent = Agent(
     name="resource_monitor_agent",
@@ -57,7 +77,7 @@ resource_monitor_agent = Agent(
 
 orchestrator_agent = SequentialAgent(
     name="orchestrator_agent",
-    sub_agents=[resource_scanner_agent, resource_monitor_agent],
+    sub_agents=[resource_scanner_agent, resource_monitor_agent, resource_labeler_agent],
 )
 
 # The root_agent is the entry point for the user query.
