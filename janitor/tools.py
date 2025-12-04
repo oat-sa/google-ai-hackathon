@@ -5,6 +5,9 @@ from datetime import datetime, timedelta, timezone
 
 from google.cloud import compute_v1
 from google.cloud import monitoring_v3
+from google.adk.tools import ToolContext
+
+import janitor.schemas as schemas
 
 PROJECT_ID = os.getenv("GOOGLE_CLOUD_PROJECT")
 
@@ -136,3 +139,35 @@ def add_days_to_date(current_date: str, days: int) -> str:
     """
     new_date_obj = datetime.strptime(current_date, "%Y-%m-%d") + timedelta(days=days)
     return new_date_obj.strftime("%Y-%m-%d")
+
+
+def get_VMs_from_state(key: str, tool_context: ToolContext):
+    """Gets the current list of VMs stored in state.
+    
+    Args:
+        key: The state key to retrieve (e.g., "resources")
+        tool_context: The tool context providing access to session state
+    
+    Returns:
+        The VMInstanceList from state, or None if not found
+    """
+    state = tool_context.state
+    return state.get(key, None)
+
+
+def write_VMs_in_state(key: str, value: dict, tool_context: ToolContext):
+    """Writes the list of VMs in the state memory.
+    
+    Args:
+        key: The state key to write to (e.g., "idle_resources")
+        value: A dictionary representing VMInstanceList with "vm_instances" key containing a list of VM instances
+        tool_context: The tool context providing access to session state
+    
+    Returns:
+        The VMInstanceList object that was written
+    """
+    # Convert dict to VMInstanceList schema
+    vm_list = schemas.VMInstanceList.model_validate(value)
+    tool_context.state[key] = vm_list
+    tool_context.actions.skip_summarization = True
+    return vm_list
