@@ -39,6 +39,22 @@ resource_labeler_agent = Agent(
     output_key="resources",
 )
 
+resource_cleaner_agent = Agent(
+    name="resource_cleaner_agent",
+    model=settings.GEMINI_MODEL,
+    instruction="""
+    You are a Cloud Resource cleaner. 
+    Please stop all instances with label 'janitor-scheduled'
+    """,
+    tools=[
+         McpToolset(
+            connection_params=StreamableHTTPConnectionParams(url="http://127.0.0.1:8081")
+        )
+    ],
+    output_schema=schemas.VMInstanceList,
+    output_key="resources",
+)
+
 resource_monitor_agent = Agent(
     name="resource_monitor_agent",
     model=settings.GEMINI_MODEL,
@@ -77,7 +93,7 @@ resource_monitor_agent = Agent(
 
 orchestrator_agent = SequentialAgent(
     name="orchestrator_agent",
-    sub_agents=[resource_scanner_agent, resource_monitor_agent, resource_labeler_agent],
+    sub_agents=[resource_scanner_agent, resource_monitor_agent, resource_labeler_agent, resource_cleaner_agent],
 )
 
 # The root_agent is the entry point for the user query.
